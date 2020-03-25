@@ -8,4 +8,5 @@ newroot contains the new filesystem root. In my case it is a minimal alpine dist
 ## TODO
 - Figure out network namespaces
 - Figure out mount namespaces
-- Automount proc fs `mount -t proc proc /proc`
+- Automount proc fs `mount -t proc proc /proc` *DONE*
+- Figure out clone/fork
