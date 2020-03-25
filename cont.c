@@ -12,6 +12,7 @@
 
 void usage();
 void unsharecont();
+void mountproc();
 
 const char* MOUNT_DIR = "./newroot";
 
@@ -32,6 +33,7 @@ int main(int argc, char** argv)
         exit(1);
     } else if (pid == 0) {
         char** argv_list = &argv[1];
+        mountproc();
         if (execvp(argv[1], argv_list) < 0) {
             // catch exec error
             perror("");
@@ -69,6 +71,28 @@ void unsharecont() {
     }
     if (chroot(MOUNT_DIR) < 0 || chdir(MOUNT_DIR) < 0) {
         perror("chroot failed");
+        exit(1);
     }
+    // TODO Figure out how this works
+   // if (mount("", "/", "none", MS_REC | MS_PRIVATE, NULL) < 0) {
+   //     perror("mount failed");
+   //     exit(1);
+   // }
 }
 
+void execcmd(char** argv) {
+
+}
+
+
+void createcont() {
+
+}
+
+
+void mountproc() {
+    if (mount("proc", "/proc", "proc", 0, NULL) < 0) {
+        perror("failed to mount proc");
+        exit(1);
+    }
+}
