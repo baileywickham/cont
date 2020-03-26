@@ -23,6 +23,12 @@ const char* MOUNT_DIR = "./newroot";
 int main(int argc, char** argv)
 {
     int opt;
+
+    if (argc < 2) {
+        usage();
+        exit(EXIT_FAILURE);
+    }
+
     while ((opt = getopt(argc, argv, "s")) != -1) {
         switch (opt) {
         case 's':
@@ -36,17 +42,11 @@ int main(int argc, char** argv)
 
 void usage()
 {
-    printf("cont <program> <args...>\n");
+    printf("cont -s <program> <args...>\n");
 }
 
 void execcmd(char** argv)
 {
-}
-
-
-void pvtroot()
-{
-    // TODO decide whether to use pivot root or switchroot
 }
 
 void entercont()

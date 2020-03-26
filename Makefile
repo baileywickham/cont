@@ -1,6 +1,15 @@
-all:
-	gcc -Wall cont.c -o cont
-	gcc -Wall contd.c -o contd
+
+CC = gcc
+CFLAGS = -Wall
+OBJS = cont.o contd.o
+
+all: contd cont
+
+cont: cont.c contd.h
+	$(CC) $(CFLAGS) cont.c contd.o -o cont
+
+contd: contd.c contd.h
+	$(CC) $(CFLAGS) -c contd.c
 
 clean:
-	rm cont contd
+	rm -f *.o cont contd

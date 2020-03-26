@@ -20,7 +20,16 @@
 
 
 void startcont() {
-    char** args;
+    char* args[1];
+
+    pid_t pid = getpid();
+    FILE* f = fopen("/run/contd.pid", "w");
+    if (f == NULL) {
+        perror("failed to write contd.pid");
+        exit(EXIT_FAILURE);
+    }
+    fprintf(f, "%d\n", pid);
+    fclose(f);
 
     createdaemon();
     unsharecont();
@@ -93,10 +102,4 @@ void pvtroot() {
     // TODO decide whether to use pivot root or switchroot
 }
 
-
-void entercont() {
-   // if (setns(int __fd, int __nstype) < 0) {
-   //     perror("entering cont failed");
-   // }
-}
 
