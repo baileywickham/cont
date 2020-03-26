@@ -1,4 +1,6 @@
 newroot/*
+cont
+contd
 # Prerequisites
 *.d
 
@@ -51,4 +53,3 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
-cont

@@ -20,8 +20,14 @@
 
 
 void startcont() {
+    char** args;
+
     createdaemon();
     unsharecont();
+
+    args[0] = NULL;
+    // exec init process
+    execv("/sbin/init", args);
 }
 
 
