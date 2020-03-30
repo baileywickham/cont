@@ -1,5 +1,5 @@
 # cont
-A minimal container implementation in C
+A minimal container implementation in C, written to practice syscalls, linux, and C.
 
 
 ## About
@@ -12,9 +12,14 @@ To restore a container, I think you would move the workdir to the upperdir.
 
 ## TODO
 - Figure out network namespaces
-- Figure out mount namespaces
-- Automount proc fs `mount -t proc proc /proc` *DONE*
+- Figure out mount namespaces, other mounts besides proc
+- Automount proc fs `mount -t proc proc /proc` **DONE**
 - Figure out clone/fork
+- Determine role of Daemon
 
 ## Notes
 - https://github.com/riswandans/litesploit/blob/master/modules/exploits/linux/localroot/overlayfs.c
+
+- https://github.com/opencontainers/runc/tree/master/libcontainer
+
+- `netdb.h` and getservbyname

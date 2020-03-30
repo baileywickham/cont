@@ -1,4 +1,3 @@
-
 CC = gcc
 CFLAGS = -Wall
 OBJS = cont.o contd.o
