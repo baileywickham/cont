@@ -39,19 +39,18 @@ void startcont()
     execv("/sbin/init", args);
 }
 
-void unsharecont()
+void unsharecont(char* contname)
 {
     const int UNSHARE_FLAGS = CLONE_NEWNET | CLONE_NEWNS | CLONE_NEWUTS | CLONE_NEWPID;
-    const char* newname = "cont"; // TODO change to proc name with hash
     if (unshare(UNSHARE_FLAGS) < 0) {
         perror("failed to change namespaces\n");
         exit(EXIT_FAILURE);
     }
-    if (sethostname(newname, strlen(newname)) < 0) {
+    if (sethostname(contname, strlen(contname)) < 0) {
         perror("failed to rename cont\n");
         exit(EXIT_FAILURE);
     }
-    if (mount("overlay", "./workdir", "overlayfs", MS_MGC_VAL, "lowerdir=./newroot,upperdir=./oldroot") < 0) {
+    if (mount("overlay", MOUNT_DIR, "overlayfs", MS_MGC_VAL, "lowerdir=./newroot,upperdir=./oldroot") < 0) {
         perror("mount overlay failed");
     }
     if (chroot(MOUNT_DIR) < 0 || chdir(MOUNT_DIR) < 0) {
