@@ -1,3 +1,5 @@
+daemon
+alpine
 newroot/*
 cont
 contd

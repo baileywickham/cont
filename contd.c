@@ -8,6 +8,7 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <syslog.h>
 #include <unistd.h>
 
@@ -15,7 +16,8 @@
 
 #define NEWROOT "newroot"
 #define OLDROOT "oldroot"
-#define MOUNT_DIR "./workdir"
+#define WORKDIR "./workdir"
+
 
 void startcont()
 {
@@ -39,9 +41,26 @@ void startcont()
     execv("/sbin/init", args);
 }
 
+void createcont(char* contname) {
+    char d[25], u[25], l[25], w[25],o[25];
+    sprintf(d, "./containers/%s", contname);
+    sprintf(u, "./containers/%s/upper", contname);
+    sprintf(l, "./containers/%s/lower", contname);
+    sprintf(w, "./containers/%s/work", contname);
+    sprintf(o, "./containers/%s/overlay", contname);
+    if (mkdir(d, 0755) < 0 || mkdir(u, 0755) < 0 || mkdir(l, 0755) < 0
+            || mkdir(w, 0755) < 0 || mkdir(o, 0755) < 0){
+        perror("failed to create directory");
+        exit(EXIT_FAILURE);
+    }
+
+}
 void unsharecont(char* contname)
 {
     const int UNSHARE_FLAGS = CLONE_NEWNET | CLONE_NEWNS | CLONE_NEWUTS | CLONE_NEWPID;
+    char mountdir[100];
+    char mountparam[100];
+
     if (unshare(UNSHARE_FLAGS) < 0) {
         perror("failed to change namespaces\n");
         exit(EXIT_FAILURE);
@@ -50,14 +69,19 @@ void unsharecont(char* contname)
         perror("failed to rename cont\n");
         exit(EXIT_FAILURE);
     }
-    if (mount("overlay", MOUNT_DIR, "overlayfs", MS_MGC_VAL, "lowerdir=./newroot,upperdir=./oldroot") < 0) {
+    if (sprintf(mountparam, "lowerdir=./alpine,upperdir=./containers/%s/upper,workdir=./containers/%s/work",contname, contname) < 0 ||
+            sprintf(mountdir, "./containers/%s/overlay", contname)) {
+        perror("Error formatting string");
+    }
+    if (mount("overlay", mountdir, "overlay", MS_MGC_VAL, mountparam) < 0) {
         perror("mount overlay failed");
     }
-    if (chroot(MOUNT_DIR) < 0 || chdir(MOUNT_DIR) < 0) {
+
+    if (chroot(mountdir) < 0 || chdir(mountdir) < 0) {
         perror("chroot failed");
         exit(EXIT_FAILURE);
     }
-    // TODO Figure out how this works
+    // TODO Figure out how this work
     // if (mount("", "/", "none", MS_REC | MS_PRIVATE, NULL) < 0) {
     //     perror("mount failed");
     //     exit(EXIT_FAILURE);
