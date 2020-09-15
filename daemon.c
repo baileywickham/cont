@@ -46,7 +46,6 @@ int parseline(char* line) {
         return 0;
 
     } else if (!strcmp(parsed[0], "run")) {
-        printf("ohno\n");
     }
 
     return -1;

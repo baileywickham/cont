@@ -18,6 +18,31 @@
 #define OLDROOT "oldroot"
 #define WORKDIR "./workdir"
 
+void runcont(char*, int, char**);
+
+int main(int argc, char** argv) {
+    if (argc < 2) {
+        printf("contd <cmd> ...\n");
+        exit(EXIT_SUCCESS);
+    }
+
+    if (!strcmp(argv[1], "create")) {
+        if (argc -1 != 2) {
+            printf("contd create <cont>\n");
+            return 0;
+        }
+        createcont(argv[2]);
+        return 0;
+
+    } else if (!strcmp(argv[1], "run")) {
+        if (argc -1 != 3) {
+            printf("contd run <cont> <cmd>\n");
+            return 0;
+        }
+        runcont(argv[2], argc-1, argv);
+    }
+
+}
 
 void startcont()
 {
@@ -45,16 +70,21 @@ void createcont(char* contname) {
     char d[25], u[25], l[25], w[25],o[25];
     sprintf(d, "./containers/%s", contname);
     sprintf(u, "./containers/%s/upper", contname);
-    sprintf(l, "./containers/%s/lower", contname);
     sprintf(w, "./containers/%s/work", contname);
     sprintf(o, "./containers/%s/overlay", contname);
-    if (mkdir(d, 0755) < 0 || mkdir(u, 0755) < 0 || mkdir(l, 0755) < 0
+    if (mkdir(d, 0755) < 0 || mkdir(u, 0755) < 0
             || mkdir(w, 0755) < 0 || mkdir(o, 0755) < 0){
         perror("failed to create directory");
         exit(EXIT_FAILURE);
     }
 
 }
+
+void runcont(char* contname, int argc, char** argv) {
+    unsharecont(contname);
+    execv("/bin/ls", argv);
+}
+
 void unsharecont(char* contname)
 {
     const int UNSHARE_FLAGS = CLONE_NEWNET | CLONE_NEWNS | CLONE_NEWUTS | CLONE_NEWPID;
@@ -69,12 +99,16 @@ void unsharecont(char* contname)
         perror("failed to rename cont\n");
         exit(EXIT_FAILURE);
     }
-    if (sprintf(mountparam, "lowerdir=./alpine,upperdir=./containers/%s/upper,workdir=./containers/%s/work",contname, contname) < 0 ||
-            sprintf(mountdir, "./containers/%s/overlay", contname)) {
-        perror("Error formatting string");
-    }
+
+    //sprintf(mountparam, "lowerdir=alpine,upperdir=containers/%s/upper,workdir=containers/%s/work", contname, contname);
+    sprintf(mountparam, "lowerdir=alpine,upperdir=containers/%s/upper,workdir=containers/%s/work", contname,contname);
+    sprintf(mountdir, "containers/%s/overlay",contname);
+
+    //if (mount("overlay", mountdir, "overlay", MS_MGC_VAL, mountparam) < 0) {
     if (mount("overlay", mountdir, "overlay", MS_MGC_VAL, mountparam) < 0) {
+        printf("%d\n",mount("overlay", mountdir, "overlay", MS_MGC_VAL, mountparam));
         perror("mount overlay failed");
+        exit(EXIT_FAILURE);
     }
 
     if (chroot(mountdir) < 0 || chdir(mountdir) < 0) {
