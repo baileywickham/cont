@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
     }
 
     if (!strcmp(argv[1], "create")) {
-        if (argc -1 != 2) {
+        if (argc != 3) {
             printf("contd create <cont>\n");
             return 0;
         }
@@ -35,11 +35,12 @@ int main(int argc, char** argv) {
         return 0;
 
     } else if (!strcmp(argv[1], "run")) {
-        if (argc -1 != 3) {
+        if (argc != 4) {
+            // [0 contd] [1 run] [2 contname] [3... cmd]
             printf("contd run <cont> <cmd>\n");
             return 0;
         }
-        runcont(argv[2], argc-1, argv);
+        runcont(argv[2], argc-1, &argv[3]);
     }
 
 }
@@ -67,26 +68,30 @@ void startcont()
 }
 
 void createcont(char* contname) {
-    char d[25], u[25], l[25], w[25],o[25];
+    char d[25], u[25], w[25],o[25];
     sprintf(d, "./containers/%s", contname);
     sprintf(u, "./containers/%s/upper", contname);
     sprintf(w, "./containers/%s/work", contname);
     sprintf(o, "./containers/%s/overlay", contname);
-    if (mkdir(d, 0755) < 0 || mkdir(u, 0755) < 0
-            || mkdir(w, 0755) < 0 || mkdir(o, 0755) < 0){
+    if (mkdir(d, 0755) < 0 && errno == EEXIST) {
+        printf("container %s already exists\n", contname);
+    }
+    if (mkdir(u, 0755) < 0 || mkdir(w, 0755) < 0 || mkdir(o, 0755) < 0){
         perror("failed to create directory");
         exit(EXIT_FAILURE);
     }
+    printf("Container created at %s\n", d);
 
 }
 
 void runcont(char* contname, int argc, char** argv) {
     unsharecont(contname);
-    execv("/bin/ls", argv);
+    // _argv is by default null terminated
+    // exec v: vector, p: check path
+    execvp(argv[0], argv);
 }
 
-void unsharecont(char* contname)
-{
+void unsharecont(char* contname) {
     const int UNSHARE_FLAGS = CLONE_NEWNET | CLONE_NEWNS | CLONE_NEWUTS | CLONE_NEWPID;
     char mountdir[100];
     char mountparam[100];
@@ -100,13 +105,11 @@ void unsharecont(char* contname)
         exit(EXIT_FAILURE);
     }
 
-    //sprintf(mountparam, "lowerdir=alpine,upperdir=containers/%s/upper,workdir=containers/%s/work", contname, contname);
-    sprintf(mountparam, "lowerdir=alpine,upperdir=containers/%s/upper,workdir=containers/%s/work", contname,contname);
+    sprintf(mountparam, "lowerdir=alpine,upperdir=/home/y/workspace/cont/containers/%s/upper,workdir=containers/%s/work", contname,contname);
     sprintf(mountdir, "containers/%s/overlay",contname);
 
-    //if (mount("overlay", mountdir, "overlay", MS_MGC_VAL, mountparam) < 0) {
     if (mount("overlay", mountdir, "overlay", MS_MGC_VAL, mountparam) < 0) {
-        printf("%d\n",mount("overlay", mountdir, "overlay", MS_MGC_VAL, mountparam));
+        // This will fail on kerel 5.4
         perror("mount overlay failed");
         exit(EXIT_FAILURE);
     }
