@@ -70,7 +70,9 @@ void startcont()
 
 int contexists(char* contname)
 {
-    DIR* dir = opendir(contname);
+    char d[36];
+    sprintf(d, "containers/%s", contname);
+    DIR* dir = opendir(d);
     if (dir) {
         closedir(dir);
         return 1;
@@ -88,6 +90,7 @@ void createcont(char* contname)
     sprintf(o, "./containers/%s/overlay", contname);
     if (contexists(contname)) {
         printf("container %s already exists\n", contname);
+        exit(EXIT_FAILURE);
     }
     if (mkdir(d, 0755) < 0 || mkdir(u, 0755) < 0 || mkdir(w, 0755) < 0 || mkdir(o, 0755) < 0) {
         perror("failed to create directory");
