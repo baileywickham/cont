@@ -2,17 +2,10 @@ CC = gcc
 CFLAGS = -Wall
 OBJS = cont.o contd.o
 
-all: contd cont daemon
-
-daemon: contd
-	$(CC) $(CFLAGS) daemon.c contd.o -o daemon
-
-cont: cont.c contd.h
-	$(CC) $(CFLAGS) cont.c contd.o -o cont
+all: contd
 
 contd: contd.c contd.h
-	$(CC) $(CFLAGS) -c contd.c
-
+	$(CC) $(CFLAGS) contd.c -o contd
 
 clean:
-	rm -f *.o cont contd daemon
+	rm -f *.o cont contd daemon a.out

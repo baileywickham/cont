@@ -15,9 +15,6 @@
 
 #include "contd.h"
 
-#define NEWROOT "newroot"
-#define OLDROOT "oldroot"
-#define WORKDIR "./workdir"
 
 void runcont(char*, int, char**);
 
@@ -107,6 +104,7 @@ void runcont(char* contname, int argc, char** argv)
     }
 
     unsharecont(contname);
+    mountproc();
     // _argv is by default null terminated
     // exec v: vector, p: check path
     execvp(argv[0], argv);
@@ -174,8 +172,7 @@ void createdaemon()
     }
 }
 
-void mountproc()
-{
+void mountproc() {
     if (mount("proc", "/proc", "proc", 0, NULL) < 0) {
         perror("failed to mount proc");
         exit(EXIT_FAILURE);
