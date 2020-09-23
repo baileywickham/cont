@@ -144,8 +144,11 @@ void runcont(char* contname, int argc, char** argv)
     }
     if (pid > 0) {
         // Parent
+        // Add child to control group by pid.
         addproctocgroup(pid);
-        // Need to wait here
+        // Wait for child to exit
+        wait(NULL);
+        // Remove child pid from control group
         cleancgroup(pid);
     } else  {
         // Child
@@ -157,6 +160,7 @@ void runcont(char* contname, int argc, char** argv)
 
 void unsharecont(char* contname)
 {
+    //                        Network ns   | Mount ns    | Hostname ns  | PID namespace
     const int UNSHARE_FLAGS = CLONE_NEWNET | CLONE_NEWNS | CLONE_NEWUTS | CLONE_NEWPID;
     char mountdir[100];
     char mountparam[100];
@@ -188,33 +192,6 @@ void unsharecont(char* contname)
     //     perror("mount failed");
     //     exit(EXIT_FAILURE);
     // }
-}
-
-void createdaemon()
-{
-    pid_t pid = fork();
-    if (pid < 0) {
-        perror("failed to fork daemon");
-    }
-    if (pid > 0) {
-        exit(0); // kill parent
-    }
-    if (setsid() < 0) {
-        perror("setting session id failed");
-        exit(EXIT_FAILURE);
-    }
-    // ignore signals
-    signal(SIGCHLD, SIG_IGN);
-    signal(SIGHUP, SIG_IGN);
-
-    pid = fork();
-    if (pid < 0) {
-        perror("failed to fork child daemon");
-        exit(EXIT_FAILURE);
-    }
-    if (pid > 0) {
-        exit(0); //kill parent
-    }
 }
 
 void mountproc() {
