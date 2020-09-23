@@ -8,15 +8,14 @@
 #include <sys/mount.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
-#include <sys/types.h>
 #include <sys/wait.h>
 #include <syslog.h>
 #include <unistd.h>
 
 #include "contd.h"
 
+#define MAXCONTNAMELEN 36
 
-void runcont(char*, int, char**);
 
 int main(int argc, char** argv)
 {
@@ -29,6 +28,10 @@ int main(int argc, char** argv)
         if (argc != 3) {
             printf("contd create <cont>\n");
             return 0;
+        }
+        if (strlen(argv[2]) >= MAXCONTNAMELEN) {
+            printf("Container name exceeds max len: %d", MAXNAMLEN);
+            exit(EXIT_FAILURE);
         }
         createcont(argv[2]);
         return 0;
@@ -43,32 +46,7 @@ int main(int argc, char** argv)
     }
 }
 
-void startcont()
-{
-    char* args[1];
-
-    pid_t pid = getpid();
-    FILE* f = fopen("/run/contd.pid", "w");
-    if (f == NULL) {
-        perror("failed to write contd.pid");
-        exit(EXIT_FAILURE);
-    }
-    fprintf(f, "%d\n", pid);
-    fclose(f);
-
-    createdaemon();
-    unsharecont();
-
-    args[0] = NULL;
-    // exec init process
-    // TODO change to command
-    execv("/sbin/init", args);
-}
-
-int contexists(char* contname)
-{
-    char d[36];
-    sprintf(d, "containers/%s", contname);
+int direxists(char* d) {
     DIR* dir = opendir(d);
     if (dir) {
         closedir(dir);
@@ -78,9 +56,60 @@ int contexists(char* contname)
     }
 }
 
-void createcont(char* contname)
+void createcgroup() {
+    // Called once on first run of this program.
+    // Creates the cgroup for all child proccesses.
+    char* d = "/sys/fs/cgroup/memory/cont";
+    if (mkdir(d, 0755) < 0)
+        perror("Failed to create cgroup");
+    FILE* f = fopen("/sys/fs/cgroup/memory/cont/memory.limit_in_bytes", "w");
+    // about a gig, I think. Either that or 200MB
+    fprintf(f, "200000000\n");
+    fclose(f);
+}
+
+int cgroupexists() {
+    return direxists("/sys/fs/cgroup/memory/cont");
+}
+
+
+void entercgroup(char* contname) {
+    pid_t pid = getpid();
+    FILE* f = fopen("/run/contd.pid", "w");
+    if (f == NULL) {
+        perror("failed to write contd.pid");
+        exit(EXIT_FAILURE);
+    } // Keeping this here, this writes the pid of the proc to run
+    fprintf(f, "%d\n", pid);
+    fclose(f);
+}
+
+void cleancgroup(pid_t pid) {
+    char buff[256];
+}
+void addproctocgroup(pid_t pid) {
+    FILE* f = fopen("/sys/fs/cgroup/memory/cont/memory.procs", "a");
+    if (f == NULL) {
+        perror("failed to write memory.procs");
+        exit(EXIT_FAILURE);
+    }
+    fprintf(f, "%d\n", pid);
+    fclose(f);
+}
+
+
+int contexists(char* contname)
 {
-    char d[25], u[25], w[25], o[25];
+    char d[MAXCONTNAMELEN];
+    sprintf(d, "containers/%s", contname);
+    return direxists(d);
+}
+
+void createcont(char* contname) {
+    if (!cgroupexists())
+        createcgroup();
+
+    char d[MAXCONTNAMELEN], u[MAXCONTNAMELEN], w[MAXCONTNAMELEN], o[MAXCONTNAMELEN];
     sprintf(d, "./containers/%s", contname);
     sprintf(u, "./containers/%s/upper", contname);
     sprintf(w, "./containers/%s/work", contname);
@@ -96,6 +125,7 @@ void createcont(char* contname)
     printf("Container created at %s\n", d);
 }
 
+
 void runcont(char* contname, int argc, char** argv)
 {
     if (!contexists(contname)) {
@@ -107,7 +137,22 @@ void runcont(char* contname, int argc, char** argv)
     mountproc();
     // _argv is by default null terminated
     // exec v: vector, p: check path
-    execvp(argv[0], argv);
+    pid_t pid = fork();
+    if (pid < 0) {
+        perror("failed to fork daemon");
+        exit(EXIT_FAILURE);
+    }
+    if (pid > 0) {
+        // Parent
+        addproctocgroup(pid);
+        // Need to wait here
+        cleancgroup(pid);
+    } else  {
+        // Child
+        execvp(argv[0], argv);
+    }
+    // Not sure if we need to start the init proc
+    // execv("/sbin/init", args);
 }
 
 void unsharecont(char* contname)
